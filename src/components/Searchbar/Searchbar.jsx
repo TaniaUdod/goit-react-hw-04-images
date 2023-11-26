@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Form,
@@ -7,44 +7,40 @@ import {
   Span,
 } from './Searchbar.styled';
 
-export class Searchbar extends Component {
-  state = {
-    query: '',
-  };
+export const Searchbar = ({ onSubmit }) => {
+  const [query, setQuery] = useState('');
 
-  handleInputChange = event => {
+  const handleInputChange = event => {
     const { value } = event.target;
-    this.setState({ query: value });
+    setQuery(value);
   };
 
-  handleSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
-    this.props.onSubmit(this.state.query);
-    this.setState({ query: '' });
+    onSubmit(query);
+    setQuery('');
   };
 
-  render() {
-    return (
-      <SearchbarContainer>
-        <header>
-          <Form onSubmit={this.handleSubmit}>
-            <Button type="submit">
-              <Span>Search</Span>
-            </Button>
+  return (
+    <SearchbarContainer>
+      <header>
+        <Form onSubmit={handleSubmit}>
+          <Button type="submit">
+            <Span>Search</Span>
+          </Button>
 
-            <Input
-              type="text"
-              name="query"
-              value={this.state.query}
-              onChange={this.handleInputChange}
-              autoComplete="off"
-              autoFocus
-              placeholder="Search images and photos"
-              required
-            />
-          </Form>
-        </header>
-      </SearchbarContainer>
-    );
-  }
-}
+          <Input
+            type="text"
+            name="query"
+            value={query}
+            onChange={handleInputChange}
+            autoComplete="off"
+            autoFocus
+            placeholder="Search images and photos"
+            required
+          />
+        </Form>
+      </header>
+    </SearchbarContainer>
+  );
+};
