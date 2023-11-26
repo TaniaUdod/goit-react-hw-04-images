@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { getImages } from 'api/image';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -8,87 +8,74 @@ import { Notify } from 'notiflix';
 import { AppContainer } from './App.styled';
 import { ScrollUpButton } from './ScrollToTop/ScrollToTop.styled';
 
-export class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    currentPage: 1,
-    isLoading: false,
-    error: '',
-    isLoadMore: false,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoadMore, setIsLoadMore] = useState(false);
 
-  componentDidUpdate(_, prevState) {
-    const { query, currentPage } = this.state;
-    if (prevState.query !== query || prevState.currentPage !== currentPage) {
-      this.handleImages(query, currentPage);
-    }
-  }
-
-  handleImages = async () => {
-    const { query, currentPage } = this.state;
-
-    try {
-      this.setState({ isLoading: true });
-      const data = await getImages(query, currentPage);
-
-      if (!data.hits.length) {
-        Notify.failure(
-          `Sorry, there are no images matching your search query. Please try again.`
-        );
-        this.setState({ isLoading: false, isLoadMore: false });
-        return;
-      }
-
-      if (currentPage === 1) {
-        Notify.success(`Hooray! We found ${data.totalHits} images.`);
-      }
-
-      this.setState(prevState => ({
-        images: [...prevState.images, ...data.hits],
-        error: '',
-        isLoadMore: currentPage < Math.ceil(data.totalHits / 12),
-      }));
-    } catch (error) {
-      this.setState({ error: error.message });
-    } finally {
-      this.setState({ isLoading: false });
-    }
-  };
-
-  handleSubmit = query => {
-    if (this.state.query === query) {
+  useEffect(() => {
+    if (query === '') {
       return;
     }
 
-    this.setState({
-      images: [],
-      currentPage: 1,
-      query: query,
-    });
+    async function handleImages() {
+      try {
+        setIsLoading(true);
+        const data = await getImages(query, currentPage);
+
+        if (!data.hits.length) {
+          Notify.failure(
+            `Sorry, there are no images matching your search query. Please try again.`
+          );
+          setIsLoading(false);
+          setIsLoadMore(false);
+          return;
+        }
+
+        if (currentPage === 1) {
+          Notify.success(`Hooray! We found ${data.totalHits} images.`);
+        }
+
+        setImages(prevImages => [...prevImages, ...data.hits]);
+        setError('');
+        setIsLoadMore(currentPage < Math.ceil(data.totalHits / 12));
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    handleImages();
+  }, [query, currentPage]);
+
+  const handleSubmit = newQuery => {
+    if (query === newQuery) {
+      return;
+    }
+
+    setImages([]);
+    setCurrentPage(1);
+    setQuery(newQuery);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      currentPage: prevState.currentPage + 1,
-    }));
+  const loadMore = () => {
+    setCurrentPage(prevCurrentPage => prevCurrentPage + 1);
   };
 
-  render() {
-    const { images, isLoading, isLoadMore, error } = this.state;
-    return (
-      <AppContainer>
-        {isLoading && <Loader />}
-        <Searchbar onSubmit={this.handleSubmit} />
-        <ImageGallery images={images} />
-        {isLoadMore && !isLoading && <Button onClick={this.loadMore} />}
-        {error && (
-          <p style={{ textAlign: 'center', margin: 'auto' }}>
-            Sorry. {error} 😭
-          </p>
-        )}
-        <ScrollUpButton smooth />
-      </AppContainer>
-    );
-  }
-}
+  return (
+    <AppContainer>
+      {isLoading && <Loader />}
+      <Searchbar onSubmit={handleSubmit} />
+      <ImageGallery images={images} />
+      {isLoadMore && !isLoading && <Button onClick={loadMore} />}
+      {error && (
+        <p style={{ textAlign: 'center', margin: 'auto' }}>Sorry. {error} 😭</p>
+      )}
+      <ScrollUpButton smooth />
+    </AppContainer>
+  );
+};
